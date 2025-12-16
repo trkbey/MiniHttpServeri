@@ -4,6 +4,9 @@ Bu proje, **Bilgisayar Ağları dersi** kapsamında HTTP protokolünün TCP soke
 
 ---
 
+YOUTUBE VIDEOSU
+[![Watch the video](https://img.youtube.com/vi/jtkZRZcjwHw/hqdefault.jpg)](https://youtu.be/jtkZRZcjwHw)
+
 ##  Projenin Amacı
 
 * HTTP protokolünün çalışma mantığını uygulamalı olarak göstermek
@@ -94,5 +97,3 @@ Bu proje, Bilgisayar Ağları dersi kapsamında HTTP protokolünün TCP seviyesi
 
 ---
 
-**Hazırlayan:**
-Bilgisayar Mühendisliği Öğrencisi
