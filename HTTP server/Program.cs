@@ -8,15 +8,15 @@ class MiniHttpServer
 {
     static List<User> users = new List<User>()
     {
-        new User { Id = 1, Name = "Hasan" },
-        new User { Id = 2, Name = "Serdar" }
+        new User { Id = 1, Name = "Hasan", Surname = "Serdar", Age = 30 },
+        new User { Id = 2, Name = "Ahmet", Surname = "Yavuz", Age = 19 }
     };
 
     static void Main()
     {
         TcpListener server = new TcpListener(IPAddress.Any, 8080);
         server.Start();
-        Console.WriteLine("Server 8080 de aktif.");
+        Console.WriteLine("Server 8080'de aktif.");
 
         while (true)
         {
@@ -51,48 +51,46 @@ class MiniHttpServer
         if (method == "GET" && path == "/users")
             return HttpResponse(UsersToJson(), "application/json");
 
-        if (method == "GET" && path.StartsWith("/users/"))
+        if (path.StartsWith("/users/"))
         {
-            int id = int.Parse(path.Split('/')[2]);
-            User user = users.Find(u => u.Id == id);
+            if (!int.TryParse(path.Split('/')[2], out int id))
+                return BadRequest();
 
-            if (user == null)
-                return NotFound();
+            if (method == "GET")
+            {
+                User user = users.Find(u => u.Id == id);
+                return user == null ? NotFound()
+                    : HttpResponse(UserToJson(user), "application/json");
+            }
 
-            return HttpResponse(UserToJson(user), "application/json");
+            if (method == "PUT")
+            {
+                User updated = ParseUser(body);
+                User user = users.Find(u => u.Id == id);
+                if (user == null) return NotFound();
+
+                user.Name = updated.Name;
+                user.Surname = updated.Surname;
+                user.Age = updated.Age;
+                return HttpResponse("{\"status\":\"User updated\"}", "application/json");
+            }
+
+            if (method == "DELETE")
+            {
+                User user = users.Find(u => u.Id == id);
+                if (user == null) return NotFound();
+
+                users.Remove(user);
+                return HttpResponse("{\"status\":\"User deleted\"}", "application/json");
+            }
         }
 
         if (method == "POST" && path == "/users")
         {
             User user = ParseUser(body);
+            user.Id = users.Count + 1;
             users.Add(user);
             return HttpResponse("{\"status\":\"User created\"}", "application/json");
-        }
-
-        
-        if (method == "PUT" && path.StartsWith("/users/"))
-        {
-            int id = int.Parse(path.Split('/')[2]);
-            User updated = ParseUser(body);
-            User user = users.Find(u => u.Id == id);
-
-            if (user == null)
-                return NotFound();
-
-            user.Name = updated.Name;
-            return HttpResponse("{\"status\":\"User updated\"}", "application/json");
-        }
-
-        if (method == "DELETE" && path.StartsWith("/users/"))
-        {
-            int id = int.Parse(path.Split('/')[2]);
-            User user = users.Find(u => u.Id == id);
-
-            if (user == null)
-                return NotFound();
-
-            users.Remove(user);
-            return HttpResponse("{\"status\":\"User deleted\"}", "application/json");
         }
 
         return NotFound();
@@ -106,9 +104,12 @@ class MiniHttpServer
 
     static User ParseUser(string json)
     {
-        int id = int.Parse(GetValue(json, "id"));
-        string name = GetValue(json, "name");
-        return new User { Id = id, Name = name };
+        return new User
+        {
+            Name = GetValue(json, "name"),
+            Surname = GetValue(json, "surname"),
+            Age = int.Parse(GetValue(json, "age"))
+        };
     }
 
     static string GetValue(string json, string key)
@@ -126,23 +127,20 @@ class MiniHttpServer
 
     static string UsersToJson()
     {
-        StringBuilder sb = new StringBuilder();
-        sb.Append("[");
-
+        StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < users.Count; i++)
         {
             sb.Append(UserToJson(users[i]));
             if (i < users.Count - 1)
                 sb.Append(",");
         }
-
         sb.Append("]");
         return sb.ToString();
     }
 
     static string UserToJson(User user)
     {
-        return $"{{\"id\":{user.Id},\"name\":\"{user.Name}\"}}";
+        return $"{{\"id\":{user.Id},\"name\":\"{user.Name}\",\"surname\":\"{user.Surname}\",\"age\":{user.Age}}}";
     }
 
     static string HttpResponse(string content, string contentType)
@@ -156,7 +154,20 @@ class MiniHttpServer
 
     static string NotFound()
     {
-        return "HTTP/1.1 404 Not Found\r\n\r\n";
+        string msg = "{\"error\":\"Not Found\"}";
+        return
+            "HTTP/1.1 404 Not Found\r\n" +
+            $"Content-Length: {msg.Length}\r\n\r\n" +
+            msg;
+    }
+
+    static string BadRequest()
+    {
+        string msg = "{\"error\":\"Bad Request\"}";
+        return
+            "HTTP/1.1 400 Bad Request\r\n" +
+            $"Content-Length: {msg.Length}\r\n\r\n" +
+            msg;
     }
 }
 
@@ -164,4 +175,6 @@ class User
 {
     public int Id;
     public string Name;
+    public string Surname;
+    public int Age;
 }
